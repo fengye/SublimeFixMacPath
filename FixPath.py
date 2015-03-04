@@ -16,8 +16,8 @@ if isMac():
 	fixPathSettings = None
 	originalEnv = {}
 
-	def getSysPath():
-		command = "TERM=ansi CLICOLOR=\"\" SUBLIME=1 /usr/bin/login -fqpl $USER $SHELL -l -c 'TERM=ansi CLICOLOR=\"\" SUBLIME=1 printf \"%s\" \"$PATH\"'"
+	def getSysPath(sysVar):
+		command = "TERM=ansi CLICOLOR=\"\" SUBLIME=1 /usr/bin/login -fqpl $USER $SHELL -l -c 'TERM=ansi CLICOLOR=\"\" SUBLIME=1 printf \"%s\" \"{0}\"'".format(sysVar)
 
 		# Execute command with original environ. Otherwise, our changes to the PATH propogate down to
 		# the shell we spawn, which re-adds the system path & returns it, leading to duplicate values.
@@ -34,7 +34,7 @@ if isMac():
 
 
 	def fixPath():
-		currSysPath = getSysPath()
+		currSysPath = getSysPath("$PATH")
 		# Basic sanity check to make sure our new path is not empty
 		if len(currSysPath) < 1:
 			return False
@@ -43,6 +43,14 @@ if isMac():
 
 		for pathItem in fixPathSettings.get("additional_path_items", []):
 			environ['PATH'] = pathItem + ':' + environ['PATH']
+
+		currDyLdPath = getSysPath("$DYLD_LIBRARY_PATH")
+
+		# Basic sanity check to make sure our new path is not empty
+		if len(currDyLdPath) < 1:
+			return False
+
+		environ['DYLD_LIBRARY_PATH'] = currDyLdPath
 
 		return True
 
@@ -65,6 +73,7 @@ if isMac():
 		# When we unload, reset PATH to original value. Otherwise, reloads of this plugin will cause
 		# the PATH to be duplicated.
 		environ['PATH'] = originalEnv['PATH']
+		environ['DYLD_LIBRARY_PATH'] = originalEnv['DYLD_LIBRARY_PATH']
 
 		global fixPathSettings
 		fixPathSettings.clear_on_change('fixpath-reload')
